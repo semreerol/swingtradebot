@@ -83,8 +83,12 @@ def fetch_klines(
         "limit": limit,
     }
 
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+
     logger.info(f"Fetching {limit} {interval} candles for {symbol} from Bybit...")
-    response = requests.get(KLINES_ENDPOINT, params=params, timeout=REQUEST_TIMEOUT)
+    response = requests.get(KLINES_ENDPOINT, params=params, headers=headers, timeout=REQUEST_TIMEOUT)
     response.raise_for_status()
 
     data = response.json()
@@ -121,10 +125,14 @@ def fetch_current_price(symbol: str) -> float:
         "category": "spot",
         "symbol": symbol
     }
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+
     logger.info(f"Fetching current price for {symbol} from Bybit...")
 
     response = requests.get(
-        TICKER_PRICE_ENDPOINT, params=params, timeout=REQUEST_TIMEOUT
+        TICKER_PRICE_ENDPOINT, params=params, headers=headers, timeout=REQUEST_TIMEOUT
     )
     response.raise_for_status()
 
