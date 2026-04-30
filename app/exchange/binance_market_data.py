@@ -13,7 +13,7 @@ from app.utils.logger import get_logger
 
 logger = get_logger("exchange.binance")
 
-BASE_URL = "https://api.binance.com/api/v3"
+BASE_URL = "https://api.binance.us/api/v3"
 KLINES_ENDPOINT = f"{BASE_URL}/klines"
 TICKER_PRICE_ENDPOINT = f"{BASE_URL}/ticker/price"
 
