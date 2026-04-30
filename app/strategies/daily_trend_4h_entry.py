@@ -6,7 +6,7 @@ Only generates LONG signals.
 """
 from typing import Any
 
-from app.exchange.bybit_market_data import Candle
+from app.exchange.binance_market_data import Candle
 from app.indicators.ema import calculate_ema
 from app.indicators.rsi import calculate_rsi
 from app.indicators.atr import calculate_atr

@@ -3,7 +3,7 @@ Tests for the Daily Trend + 4H Entry strategy.
 Uses synthetic candle data to verify signal generation.
 """
 import pytest
-from app.exchange.bybit_market_data import Candle
+from app.exchange.binance_market_data import Candle
 from app.strategies.daily_trend_4h_entry import evaluate, STRATEGY_ID
 from datetime import datetime, timezone, timedelta
 

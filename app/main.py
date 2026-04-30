@@ -18,7 +18,7 @@ from app.firebase.client import FirebaseClient
 from app.firebase.repositories import BotRepository
 from app.firebase.lock_manager import LockManager
 from app.notification.telegram import TelegramNotifier
-from app.exchange.bybit_market_data import fetch_klines, fetch_current_price
+from app.exchange.binance_market_data import fetch_klines, fetch_current_price
 from app.strategies import daily_trend_4h_entry
 from app.risk.risk_manager import validate_signal
 from app.execution.paper_executor import create_paper_trade, check_open_trade
