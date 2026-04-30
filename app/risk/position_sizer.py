@@ -12,6 +12,7 @@ def calculate_position_size(
     risk_per_trade: float,
     entry: float,
     stop_loss: float,
+    side: str = "LONG",
 ) -> tuple[float, float]:
     """
     Calculate position size and risk amount.
@@ -21,6 +22,7 @@ def calculate_position_size(
         risk_per_trade: Risk percentage per trade (e.g., 0.01 for 1%).
         entry: Entry price.
         stop_loss: Stop-loss price.
+        side: Trade direction ("LONG" or "SHORT").
 
     Returns:
         Tuple of (quantity, risk_amount).
@@ -34,10 +36,10 @@ def calculate_position_size(
     if risk_per_trade <= 0 or risk_per_trade > 1:
         raise ValueError(f"Risk per trade must be between 0 and 1: {risk_per_trade}")
 
-    if stop_loss >= entry:
-        raise ValueError(
-            f"Stop-loss ({stop_loss}) must be less than entry ({entry}) for LONG."
-        )
+    if side == "LONG" and stop_loss >= entry:
+        raise ValueError(f"Stop-loss ({stop_loss}) must be less than entry ({entry}) for LONG.")
+    if side == "SHORT" and stop_loss <= entry:
+        raise ValueError(f"Stop-loss ({stop_loss}) must be greater than entry ({entry}) for SHORT.")
 
     risk_amount = account_balance * risk_per_trade
     price_risk = abs(entry - stop_loss)

@@ -242,13 +242,36 @@ def _search_new_signal(
     candles_1d = fetch_klines(symbol, settings.get("timeframe_trend", "1d"), limit=200)
     candles_4h = fetch_klines(symbol, settings.get("timeframe_entry", "4h"), limit=200)
 
-    # Evaluate strategy
-    signal = daily_trend_4h_entry.evaluate(
-        symbol=symbol,
-        candles_1d=candles_1d,
-        candles_4h=candles_4h,
-        params=params,
-    )
+    # Fetch BTC market data for filter if enabled and needed
+    btc_filter_enabled = params.get("btc_filter_enabled", True)
+    btc_candles_1d = None
+    if btc_filter_enabled and symbol != "BTCUSDT":
+        log.info("Fetching BTCUSDT market data for BTC filter...")
+        btc_candles_1d = fetch_klines("BTCUSDT", settings.get("timeframe_trend", "1d"), limit=200)
+
+    # Strategy Factory
+    if strategy_id == "daily_trend_4h_score_long_short_v3":
+        from app.strategies.daily_trend_4h_score_long_short import DailyTrend4HScoreLongShortStrategy
+        strategy = DailyTrend4HScoreLongShortStrategy()
+        signal = strategy.evaluate(
+            symbol=symbol,
+            candles_1d=candles_1d,
+            candles_4h=candles_4h,
+            params=params,
+            btc_candles_1d=btc_candles_1d
+        )
+    else:
+        # Fallback to older strategy
+        signal = daily_trend_4h_entry.evaluate(
+            symbol=symbol,
+            candles_1d=candles_1d,
+            candles_4h=candles_4h,
+            params=params,
+        )
+
+    # Send scan summary
+    if strategy_id == "daily_trend_4h_score_long_short_v3":
+        notifier.send_scan_summary(symbol, strategy_id, signal)
 
     if not signal.has_signal:
         log.info(f"No signal generated. Reasons: {signal.reason}")
@@ -273,6 +296,10 @@ def _search_new_signal(
         risk_result=risk_result,
         max_holding_days=settings.get("max_holding_days", 14),
     )
+    trade_data["entry_score"] = getattr(signal, "score", 0)
+    trade_data["entry_grade"] = getattr(signal, "grade", "")
+    trade_data["entry_metrics"] = getattr(signal, "metrics", {})
+    trade_data["entry_warnings"] = getattr(signal, "warnings", [])
 
     # Save signal to Firestore
     signal_id = repo.create_signal(signal.to_dict())

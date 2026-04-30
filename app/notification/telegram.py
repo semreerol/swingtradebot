@@ -78,16 +78,20 @@ class TelegramNotifier:
 
     def send_trade_opened(self, trade: dict[str, Any]) -> bool:
         """Send a notification for a newly opened paper trade."""
+        side = trade.get('side', 'LONG')
+        emoji = "📈" if side == "LONG" else "📉"
+        score = trade.get('entry_score', 0)
+        grade = trade.get('entry_grade', 'N/A')
+        
         text = (
-            "🟢 <b>Paper Trade Opened</b>\n\n"
+            f"{emoji} <b>Paper Trade Opened</b>\n\n"
+            f"<b>Side:</b> {side}\n"
             f"<b>Symbol:</b> {trade.get('symbol', 'N/A')}\n"
-            f"<b>Side:</b> {trade.get('side', 'N/A')}\n"
             f"<b>Entry:</b> {trade.get('entry', 0):.2f}\n"
-            f"<b>Stop-Loss:</b> {trade.get('stop_loss', 0):.2f}\n"
-            f"<b>Take-Profit:</b> {trade.get('take_profit', 0):.2f}\n"
-            f"<b>Quantity:</b> {trade.get('quantity', 0):.8f}\n"
-            f"<b>Risk Amount:</b> ${trade.get('risk_amount', 0):.2f}\n"
-            f"<b>Risk/Reward:</b> {trade.get('risk_reward', 0):.2f}\n"
+            f"<b>Stop:</b> {trade.get('stop_loss', 0):.2f}\n"
+            f"<b>Target:</b> {trade.get('take_profit', 0):.2f}\n"
+            f"<b>Score:</b> {score} / 100\n"
+            f"<b>Grade:</b> {grade}\n"
             f"<b>Strategy:</b> {trade.get('strategy_id', 'N/A')}\n"
             f"<b>Mode:</b> {trade.get('mode', 'paper')}"
         )
@@ -98,6 +102,7 @@ class TelegramNotifier:
         status = trade.get("status", "CLOSED")
         pnl = trade.get("pnl", 0) or 0
         pnl_percent = trade.get("pnl_percent", 0) or 0
+        side = trade.get("side", "LONG")
 
         emoji = "🟢" if pnl >= 0 else "🔴"
         status_text = {
@@ -108,13 +113,41 @@ class TelegramNotifier:
 
         text = (
             f"{emoji} <b>Paper Trade Closed — {status_text}</b>\n\n"
+            f"<b>Side:</b> {side}\n"
             f"<b>Symbol:</b> {trade.get('symbol', 'N/A')}\n"
             f"<b>Entry:</b> {trade.get('entry', 0):.2f}\n"
             f"<b>Exit:</b> {trade.get('exit_price', 0):.2f}\n"
             f"<b>PnL:</b> ${pnl:.2f} ({pnl_percent:.2f}%)\n"
-            f"<b>Quantity:</b> {trade.get('quantity', 0):.8f}\n"
             f"<b>Strategy:</b> {trade.get('strategy_id', 'N/A')}\n"
             f"<b>Mode:</b> {trade.get('mode', 'paper')}"
+        )
+        return self.send_message(text)
+
+    def send_scan_summary(self, symbol: str, strategy_id: str, signal: Any) -> bool:
+        """Send a summary of the strategy scan."""
+        metrics = signal.metrics if hasattr(signal, "metrics") else {}
+        long_score = metrics.get("long_score", 0)
+        short_score = metrics.get("short_score", 0)
+        selected_side = metrics.get("selected_side", signal.side if signal.has_signal else "NONE")
+        decision = "PAPER TRADE OPENED" if signal.has_signal else "NO TRADE"
+        
+        regime = metrics.get("daily_slope_regime", "N/A")
+        btc_filter = metrics.get("btc_market_filter", "N/A")
+        
+        warnings_text = "\n".join([f"- {w}" for w in signal.warnings]) if signal.warnings else "- None"
+        
+        text = (
+            f"📊 <b>Swing Bot Scan Summary</b>\n\n"
+            f"<b>Symbol:</b> {symbol}\n"
+            f"<b>Strategy:</b> {strategy_id}\n\n"
+            f"<b>Long Score:</b> {long_score} / 100\n"
+            f"<b>Short Score:</b> {short_score} / 100\n"
+            f"<b>Selected Side:</b> {selected_side}\n"
+            f"<b>Decision:</b> {decision}\n\n"
+            f"<b>Market:</b>\n"
+            f"1D slope: {regime}\n"
+            f"BTC filter: {btc_filter}\n\n"
+            f"<b>Warnings:</b>\n{warnings_text}"
         )
         return self.send_message(text)
 

@@ -173,3 +173,43 @@ class TestRiskManager:
         )
         assert result.approved is False
         assert "take-profit" in result.rejection_reasons[0].lower()
+
+    def test_short_approved_signal(self):
+        """Valid SHORT signal should be approved."""
+        signal = self._make_signal(side="SHORT", stop_loss=68000.0, take_profit=59000.0)
+        result = validate_signal(
+            signal=signal,
+            account_balance=10000,
+            risk_per_trade=0.01,
+            min_risk_reward=2.0,
+            has_open_trade=False,
+        )
+        assert result.approved is True
+        assert result.quantity > 0
+        assert result.risk_amount > 0
+
+    def test_short_reject_stop_loss_below_entry(self):
+        """Should reject when stop-loss is below entry for SHORT."""
+        signal = self._make_signal(side="SHORT", stop_loss=60000.0, take_profit=59000.0)
+        result = validate_signal(
+            signal=signal,
+            account_balance=10000,
+            risk_per_trade=0.01,
+            min_risk_reward=2.0,
+            has_open_trade=False,
+        )
+        assert result.approved is False
+        assert "stop-loss" in result.rejection_reasons[0].lower()
+
+    def test_short_reject_take_profit_above_entry(self):
+        """Should reject when take-profit is above entry for SHORT."""
+        signal = self._make_signal(side="SHORT", stop_loss=68000.0, take_profit=70000.0)
+        result = validate_signal(
+            signal=signal,
+            account_balance=10000,
+            risk_per_trade=0.01,
+            min_risk_reward=2.0,
+            has_open_trade=False,
+        )
+        assert result.approved is False
+        assert "take-profit" in result.rejection_reasons[0].lower()

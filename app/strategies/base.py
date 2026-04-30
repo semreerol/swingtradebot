@@ -18,6 +18,10 @@ class StrategySignal:
     risk_reward: float = 0.0
     strategy_id: str = ""
     reason: list[str] = field(default_factory=list)
+    score: float = 0.0
+    grade: str = ""
+    warnings: list[str] = field(default_factory=list)
+    metrics: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         """Convert to a dictionary for Firestore storage."""
@@ -31,6 +35,10 @@ class StrategySignal:
             "risk_reward": self.risk_reward,
             "strategy_id": self.strategy_id,
             "reason": self.reason,
+            "score": self.score,
+            "grade": self.grade,
+            "warnings": self.warnings,
+            "metrics": self.metrics,
             "timeframe_context": {
                 "trend": "1d",
                 "entry": "4h",

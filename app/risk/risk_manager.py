@@ -54,23 +54,25 @@ def validate_signal(
         logger.warning("Risk manager: rejected — open trade exists.")
         return RiskResult(approved=False, rejection_reasons=reasons)
 
-    # Rule 3: Stop-loss must be below entry (LONG)
-    if signal.stop_loss >= signal.entry:
-        reasons.append(
-            f"Stop-loss ({signal.stop_loss:.2f}) must be below "
-            f"entry ({signal.entry:.2f})"
-        )
-        logger.warning("Risk manager: rejected — stop-loss >= entry.")
-        return RiskResult(approved=False, rejection_reasons=reasons)
-
-    # Rule 4: Take-profit must be above entry (LONG)
-    if signal.take_profit <= signal.entry:
-        reasons.append(
-            f"Take-profit ({signal.take_profit:.2f}) must be above "
-            f"entry ({signal.entry:.2f})"
-        )
-        logger.warning("Risk manager: rejected — take-profit <= entry.")
-        return RiskResult(approved=False, rejection_reasons=reasons)
+    # Rule 3: Stop-loss validation
+    if signal.side == "LONG":
+        if signal.stop_loss >= signal.entry:
+            reasons.append(f"Stop-loss ({signal.stop_loss:.2f}) must be below entry ({signal.entry:.2f}) for LONG")
+            logger.warning("Risk manager: rejected — stop-loss >= entry.")
+            return RiskResult(approved=False, rejection_reasons=reasons)
+        if signal.take_profit <= signal.entry:
+            reasons.append(f"Take-profit ({signal.take_profit:.2f}) must be above entry ({signal.entry:.2f}) for LONG")
+            logger.warning("Risk manager: rejected — take-profit <= entry.")
+            return RiskResult(approved=False, rejection_reasons=reasons)
+    elif signal.side == "SHORT":
+        if signal.stop_loss <= signal.entry:
+            reasons.append(f"Stop-loss ({signal.stop_loss:.2f}) must be above entry ({signal.entry:.2f}) for SHORT")
+            logger.warning("Risk manager: rejected — stop-loss <= entry.")
+            return RiskResult(approved=False, rejection_reasons=reasons)
+        if signal.take_profit >= signal.entry:
+            reasons.append(f"Take-profit ({signal.take_profit:.2f}) must be below entry ({signal.entry:.2f}) for SHORT")
+            logger.warning("Risk manager: rejected — take-profit >= entry.")
+            return RiskResult(approved=False, rejection_reasons=reasons)
 
     # Rule 5: Minimum risk/reward ratio
     if signal.risk_reward < min_risk_reward:
@@ -87,6 +89,7 @@ def validate_signal(
             risk_per_trade=risk_per_trade,
             entry=signal.entry,
             stop_loss=signal.stop_loss,
+            side=signal.side,
         )
     except ValueError as e:
         reasons.append(f"Position sizing error: {str(e)}")

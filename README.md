@@ -10,13 +10,13 @@ Sunucusuz, GitHub Actions ile çalışan bir paper trading swing trade botu. Fir
 
 - **Paper Trading**: Gerçek emir göndermeden trade simülasyonu
 - **Swing Trade**: 1-2 hafta süreli pozisyonlar için sinyal üretimi
+- **Çoklu Yön Desteği**: Hem LONG hem SHORT yönlü stratejiler (Sadece Paper Trading için, canlı emir atmaz)
 - **Çift Timeframe**: 1D trend filtresi + 4H giriş sinyali
-- **Risk Yönetimi**: ATR bazlı stop-loss, R/R minimum 1:2, pozisyon boyutlandırma
+- **Risk Yönetimi**: Yöne duyarlı ATR bazlı stop-loss, R/R minimum 1:2, pozisyon boyutlandırma
 - **Firestore Veritabanı**: Tüm trade, sinyal ve bot verileri kaydedilir
-- **Telegram Bildirimleri**: Trade açılış, kapanış ve hata bildirimleri
+- **Telegram Bildirimleri**: Ayrıntılı tarama (scan summary) ve LONG/SHORT belirten trade raporları
 - **GitHub Actions**: Her 4 saatte bir otomatik çalışma
-- **Distributed Lock**: Aynı anda birden fazla bot çalışmasını önler
-- **Sadece LONG**: Short, futures, leverage desteklenmez
+- **Backtest Modülü**: LONG ve SHORT ayırarak PnL hesaplayabilen backtest motoru
 
 ---
 

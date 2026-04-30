@@ -49,6 +49,10 @@ def create_paper_trade(
         "exit_price": None,
         "pnl": None,
         "pnl_percent": None,
+        "max_price_seen": signal.entry,
+        "min_price_seen": signal.entry,
+        "mfe_percent": 0.0,
+        "mae_percent": 0.0,
         "strategy_id": signal.strategy_id,
         "signal_id": None,  # Will be set after signal is saved
     }
@@ -82,84 +86,84 @@ def check_open_trade(
     stop_loss = trade_data["stop_loss"]
     take_profit = trade_data["take_profit"]
     quantity = trade_data["quantity"]
+    side = trade_data.get("side", "LONG")
     max_holding_until_str = trade_data.get("max_holding_until", "")
+    
+    max_price_seen = max(trade_data.get("max_price_seen", entry), current_price)
+    min_price_seen = min(trade_data.get("min_price_seen", entry), current_price)
+    
+    if side == "LONG":
+        mfe_percent = ((max_price_seen - entry) / entry) * 100
+        mae_percent = ((min_price_seen - entry) / entry) * 100
+    else:
+        mfe_percent = ((entry - min_price_seen) / entry) * 100
+        mae_percent = ((entry - max_price_seen) / entry) * 100
 
     now = datetime.now(timezone.utc)
+    close_reason = None
+    exit_price = None
 
     # Check Stop-Loss
-    if current_price <= stop_loss:
+    if (side == "LONG" and current_price <= stop_loss) or (side == "SHORT" and current_price >= stop_loss):
+        close_reason = "CLOSED_BY_STOP"
         exit_price = stop_loss
-        pnl = (exit_price - entry) * quantity
-        pnl_percent = (exit_price - entry) / entry * 100
-
-        updates = {
-            "status": "CLOSED_BY_STOP",
-            "closed_at": now.isoformat(),
-            "exit_price": exit_price,
-            "pnl": round(pnl, 2),
-            "pnl_percent": round(pnl_percent, 2),
-        }
-
-        logger.info(
-            f"STOP-LOSS HIT: price={current_price:.2f} <= SL={stop_loss:.2f} | "
-            f"PnL: {pnl:.2f} ({pnl_percent:.2f}%)"
-        )
-        return "CLOSED_BY_STOP", updates
-
     # Check Take-Profit
-    if current_price >= take_profit:
+    elif (side == "LONG" and current_price >= take_profit) or (side == "SHORT" and current_price <= take_profit):
+        close_reason = "CLOSED_BY_TARGET"
         exit_price = take_profit
-        pnl = (exit_price - entry) * quantity
-        pnl_percent = (exit_price - entry) / entry * 100
-
-        updates = {
-            "status": "CLOSED_BY_TARGET",
-            "closed_at": now.isoformat(),
-            "exit_price": exit_price,
-            "pnl": round(pnl, 2),
-            "pnl_percent": round(pnl_percent, 2),
-        }
-
-        logger.info(
-            f"TAKE-PROFIT HIT: price={current_price:.2f} >= TP={take_profit:.2f} | "
-            f"PnL: {pnl:.2f} ({pnl_percent:.2f}%)"
-        )
-        return "CLOSED_BY_TARGET", updates
-
     # Check Timeout
-    if max_holding_until_str:
+    elif max_holding_until_str:
         try:
             max_holding_until = datetime.fromisoformat(max_holding_until_str)
             if max_holding_until.tzinfo is None:
                 max_holding_until = max_holding_until.replace(tzinfo=timezone.utc)
 
             if now >= max_holding_until:
+                close_reason = "CLOSED_BY_TIMEOUT"
                 exit_price = current_price
-                pnl = (exit_price - entry) * quantity
-                pnl_percent = (exit_price - entry) / entry * 100
-
-                updates = {
-                    "status": "CLOSED_BY_TIMEOUT",
-                    "closed_at": now.isoformat(),
-                    "exit_price": exit_price,
-                    "pnl": round(pnl, 2),
-                    "pnl_percent": round(pnl_percent, 2),
-                }
-
-                logger.info(
-                    f"TIMEOUT: max_holding exceeded | "
-                    f"Exit at {exit_price:.2f} | PnL: {pnl:.2f} ({pnl_percent:.2f}%)"
-                )
-                return "CLOSED_BY_TIMEOUT", updates
         except (ValueError, TypeError) as e:
             logger.warning(f"Could not parse max_holding_until: {e}")
+            
+    updates = {
+        "max_price_seen": max_price_seen,
+        "min_price_seen": min_price_seen,
+        "mfe_percent": round(mfe_percent, 2),
+        "mae_percent": round(mae_percent, 2),
+    }
 
-    # Trade still open — log status check
-    unrealized_pnl = (current_price - entry) * quantity
-    unrealized_pnl_pct = (current_price - entry) / entry * 100
+    if close_reason:
+        if side == "LONG":
+            pnl = (exit_price - entry) * quantity
+            pnl_percent = (exit_price - entry) / entry * 100
+        else:
+            pnl = (entry - exit_price) * quantity
+            pnl_percent = (entry - exit_price) / entry * 100
+
+        updates.update({
+            "status": close_reason,
+            "closed_at": now.isoformat(),
+            "exit_price": exit_price,
+            "pnl": round(pnl, 2),
+            "pnl_percent": round(pnl_percent, 2),
+        })
+
+        logger.info(
+            f"{close_reason}: price={current_price:.2f} | "
+            f"Exit at {exit_price:.2f} | PnL: {pnl:.2f} ({pnl_percent:.2f}%)"
+        )
+        return close_reason, updates
+
+    # Trade still open
+    if side == "LONG":
+        unrealized_pnl = (current_price - entry) * quantity
+        unrealized_pnl_pct = (current_price - entry) / entry * 100
+    else:
+        unrealized_pnl = (entry - current_price) * quantity
+        unrealized_pnl_pct = (entry - current_price) / entry * 100
+        
     logger.info(
         f"Trade still OPEN: price={current_price:.2f} | "
         f"Unrealized PnL: {unrealized_pnl:.2f} ({unrealized_pnl_pct:.2f}%)"
     )
 
-    return None, {}
+    return None, updates
