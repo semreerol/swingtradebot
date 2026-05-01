@@ -291,10 +291,12 @@ def _search_new_signal(
         return
 
     # Create paper trade
+    account_balance = settings.get("account_balance", 10000)
     trade_data = create_paper_trade(
         signal=signal,
         risk_result=risk_result,
         max_holding_days=settings.get("max_holding_days", 14),
+        account_balance=account_balance,
     )
     trade_data["entry_score"] = getattr(signal, "score", 0)
     trade_data["entry_grade"] = getattr(signal, "grade", "")

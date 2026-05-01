@@ -17,6 +17,7 @@ def create_paper_trade(
     signal: StrategySignal,
     risk_result: RiskResult,
     max_holding_days: int = 14,
+    account_balance: float = 10000.0,
 ) -> dict[str, Any]:
     """
     Create a paper trade from a validated signal.
@@ -43,6 +44,9 @@ def create_paper_trade(
         "quantity": round(risk_result.quantity, 8),
         "risk_amount": round(risk_result.risk_amount, 2),
         "risk_reward": signal.risk_reward,
+        "account_balance": round(account_balance, 2),
+        "position_value": round(risk_result.quantity * signal.entry, 2),
+        "effective_leverage": round((risk_result.quantity * signal.entry) / account_balance, 2) if account_balance > 0 else 0.0,
         "opened_at": now.isoformat(),
         "closed_at": None,
         "max_holding_until": max_holding_until.isoformat(),
